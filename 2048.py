@@ -1,0 +1,114 @@
+import random
+
+class Grid:
+
+    def __init__(self, rows, cols):
+        self.rows = rows
+        self.cols = cols
+        self.grid = {}
+
+    def add_tile(self, x, y, n):
+        if (x,y) in self.grid:
+            return
+        self.grid[(x,y)] = n
+
+    def add_random_tile(self):
+        while True:
+            x = random.randint(0, self.rows-1)
+            y = random.randint(0, self.cols-1)
+            n = random.randint(1, 2) * 2
+
+            if (x,y) not in self.grid:
+                self.add_tile(x,y,n)
+                break
+
+    # Push tile at position (x,y) into dx, dy direction
+    # Merges two tiles if numbers match
+    # returns True if state has changed.
+    def push_tile(self, x, y, dx, dy):
+        if (x,y) not in self.grid:
+            return False
+        if x+dx<0 or x+dx >= self.rows:
+            return False
+        if y+dy<0 or y+dy >= self.cols:
+            return False
+
+        # check if there is another tile in target position
+        if (x+dx, y+dy) in self.grid:
+            if self.grid[(x,y)] == self.grid[(x+dx,y+dy)]:
+                self.grid[(x+dx,y+dy)] += self.grid[(x,y)]
+                del self.grid[(x,y)]
+                return True
+        else:
+                self.grid[(x+dx,y+dy)] = self.grid[(x,y)]
+                del self.grid[(x,y)]
+                return True
+        return False
+        
+    def draw(self):
+        for i in range(self.rows):
+            row_str = ""
+            for j in range(self.cols):
+                if (i,j) in self.grid:
+                    row_str += ("[  %4d  ]" % self.grid[(i,j)])
+                else:
+                    row_str += ("[        ]")
+            print(row_str)
+
+    def down(self):
+        board_changed = True
+        while board_changed:
+            board_changed = False
+            for i in range(self.rows-1, -1, -1):
+                for j in range(self.cols):
+                    board_changed |= self.push_tile(i, j, +1, 0)
+
+    def up(self):
+        board_changed = True
+        while board_changed:
+            board_changed = False
+            for i in range(self.rows):
+                for j in range(self.cols):
+                    board_changed |= self.push_tile(i, j, -1, 0)
+
+    def left(self):
+        board_changed = True
+        while board_changed:
+            board_changed = False
+            for j in range(self.cols):
+                for i in range(self.rows):
+                    board_changed |= self.push_tile(i, j, 0, -1)
+
+    def right(self):
+        board_changed = True
+        while board_changed:
+            board_changed = False
+            for j in range(self.cols-1, -1, -1):
+                for i in range(self.rows):
+                    board_changed |= self.push_tile(i, j, 0, +1)
+
+
+
+grid = Grid(8, 8)
+
+while True:
+    grid.add_random_tile()
+    grid.draw()
+    print(" > ")
+    input()
+
+    direction = random.choice("hjkl")
+    if direction == "j":
+        grid.down()
+    if direction == "k":
+        grid.up()
+    if direction == "h":
+        grid.left()
+    if direction == "l":
+        grid.right()
+
+
+
+
+
+
