@@ -1,4 +1,7 @@
 import random
+import os
+import time
+from colored import fg, bg, attr
 
 class Grid:
 
@@ -44,16 +47,41 @@ class Grid:
                 del self.grid[(x,y)]
                 return True
         return False
-        
+       
+    def get_color(n):
+        if n==2:
+            return fg("#005500")
+        if n==4:
+            return fg("#006600")
+        if n==8:
+            return fg("#007700")
+        if n==16:
+            return fg("#008800")
+        if n==32:
+            return fg("#009900")
+        if n==64:
+            return fg("#00AA00")
+        if n==128:
+            return fg("#00BB00")
+        if n==256:
+            return fg("#00CC00")
+        if n==512:
+            return fg("#00DD00")
+        if n==1024:
+            return fg("#00EE00")
+        return fg("#00FF00")
+ 
     def draw(self):
+        os.system("clear")
         for i in range(self.rows):
             row_str = ""
             for j in range(self.cols):
                 if (i,j) in self.grid:
-                    row_str += ("[  %4d  ]" % self.grid[(i,j)])
+                    row_str += ("%s%4d%s" % (Grid.get_color(self.grid[(i,j)]), self.grid[(i,j)], attr(0)))
                 else:
-                    row_str += ("[        ]")
+                    row_str += (fg("#004400") + "    ")
             print(row_str)
+        time.sleep(0.1)
 
     def down(self):
         board_changed = True
@@ -62,6 +90,7 @@ class Grid:
             for i in range(self.rows-1, -1, -1):
                 for j in range(self.cols):
                     board_changed |= self.push_tile(i, j, +1, 0)
+            grid.draw()
 
     def up(self):
         board_changed = True
@@ -70,6 +99,7 @@ class Grid:
             for i in range(self.rows):
                 for j in range(self.cols):
                     board_changed |= self.push_tile(i, j, -1, 0)
+            grid.draw()
 
     def left(self):
         board_changed = True
@@ -78,6 +108,7 @@ class Grid:
             for j in range(self.cols):
                 for i in range(self.rows):
                     board_changed |= self.push_tile(i, j, 0, -1)
+            grid.draw()
 
     def right(self):
         board_changed = True
@@ -86,16 +117,13 @@ class Grid:
             for j in range(self.cols-1, -1, -1):
                 for i in range(self.rows):
                     board_changed |= self.push_tile(i, j, 0, +1)
+            grid.draw()
 
-
-
-grid = Grid(8, 8)
+grid = Grid(16, 16)
 
 while True:
     grid.add_random_tile()
     grid.draw()
-    print(" > ")
-    input()
 
     direction = random.choice("hjkl")
     if direction == "j":
