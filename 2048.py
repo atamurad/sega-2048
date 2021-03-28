@@ -1,5 +1,4 @@
 import random
-import os
 import time
 from colored import fg, bg, attr
 
@@ -72,14 +71,15 @@ class Grid:
         return fg("#00FF00")
  
     def draw(self):
-        os.system("clear")
+        # clear screen
+        print("\033[H\033[J")
         for i in range(self.rows):
             row_str = ""
             for j in range(self.cols):
                 if (i,j) in self.grid:
-                    row_str += ("%s%4d%s" % (Grid.get_color(self.grid[(i,j)]), self.grid[(i,j)], attr(0)))
+                    row_str += Grid.get_color(self.grid[(i,j)]) + ("%5d" % self.grid[(i,j)]) + attr(0)
                 else:
-                    row_str += (fg("#004400") + "    ")
+                    row_str += ("     ")
             print(row_str)
         time.sleep(0.1)
 
@@ -119,13 +119,14 @@ class Grid:
                     board_changed |= self.push_tile(i, j, 0, +1)
             grid.draw()
 
-grid = Grid(16, 16)
+grid = Grid(16, 8)
 
 while True:
     grid.add_random_tile()
     grid.draw()
 
     direction = random.choice("hjkl")
+    # direction = input("> ")
     if direction == "j":
         grid.down()
     if direction == "k":
@@ -134,9 +135,4 @@ while True:
         grid.left()
     if direction == "l":
         grid.right()
-
-
-
-
-
 
