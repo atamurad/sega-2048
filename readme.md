@@ -6,8 +6,8 @@
 
 ### Features
 
- * Demo mode: randomly moves the board without any player input. Press A to trigger.
- * Sonic is watching mode. Press B to trigger.
+ * Demo mode: randomly moves the board without any player input. Press **A** to trigger.
+ * Color mode: Press **B** to switch between Red/Green/Blue/White colors.
 
 ### How to play?
 
