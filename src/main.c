@@ -294,9 +294,9 @@ int main(bool hardReset) {
     /* set color palette */
     VDP_setPalette(PAL1, palette_all.data);
     /* overwrite font colors */
-    VDP_setPaletteColor((PAL0 * 16) + 15, RGB24_TO_VDPCOLOR(0x004400));
-    VDP_setPaletteColor((PAL1 * 16) + 15, RGB24_TO_VDPCOLOR(0x008800));
-    VDP_setPaletteColor((PAL2 * 16) + 15, RGB24_TO_VDPCOLOR(0x00BB00));
+    VDP_setPaletteColor((PAL0 * 16) + 15, RGB24_TO_VDPCOLOR(0x006600));
+    VDP_setPaletteColor((PAL1 * 16) + 15, RGB24_TO_VDPCOLOR(0x009900));
+    VDP_setPaletteColor((PAL2 * 16) + 15, RGB24_TO_VDPCOLOR(0x00CC00));
     VDP_setPaletteColor((PAL3 * 16) + 15, RGB24_TO_VDPCOLOR(0x00FF00));
 
     /* init board state */
