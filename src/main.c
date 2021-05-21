@@ -2,9 +2,12 @@
 #include "sprite.h"
 
 /* 2048 game state */
-#define ROWS 16
-#define COLS 8
+#define ROWS 7
+#define COLS 7
 int board[ROWS][COLS];
+
+int grid_x = (320 - COLS*32) / 2;
+int grid_y = (224 - ROWS*32) / 2;
 
 /* board transition state */
 #define IDLE 0
@@ -15,20 +18,13 @@ int board[ROWS][COLS];
 #define GAMEOVER 5
 int move_state = IDLE;
 
+int animate[ROWS][COLS];
+
 bool demo_mode = FALSE;
-bool sonic_easter = FALSE;
 
-/* Sonic sprite animations */
-Sprite *sonic;
+Sprite *cell[ROWS][COLS];
 
-#define ANIM_STAND 0
-#define ANIM_WAIT 1
-#define ANIM_WALK 2
-#define ANIM_RUN 3
-#define ANIM_BRAKE 4
-#define ANIM_UP 5
-#define ANIM_CROUNCH 6
-#define ANIM_ROLL 7
+int frames = 0;
 
 /*
  * adds '2' or '4' tile to a random empty cell
@@ -53,6 +49,7 @@ void add_random_tile() {
 
 void init_board() {
     memset(board, 0, sizeof(board));
+    memset(animate, 0, sizeof(animate));
     move_state = IDLE;
     add_random_tile();
 }
@@ -69,10 +66,12 @@ bool push_tile(int x, int y, int dx, int dy) {
         return FALSE;
     if (board[x + dx][y + dy] == 0) {
         board[x + dx][y + dy] = board[x][y];
+        animate[x+dx][y+dy] = 8;
         board[x][y] = 0;
         return TRUE;
     } else if (board[x + dx][y + dy] == board[x][y]) {
         board[x + dx][y + dy]++;
+        animate[x+dx][y+dy] = 8;
         board[x][y] = 0;
         return TRUE;
     }
@@ -131,44 +130,58 @@ bool move_right() {
 
 void draw_board() {
     int i, j;
-    char *numstr[] = {"",    "2",   "4",   "8",    "16",   "32",   "64",
-                      "128", "256", "512", "1024", "2048", "4096", "8192"};
-    int colors[] = {0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3};
-
-    VDP_clearTextArea(1, 1, COLS * 4, ROWS);
 
     for (i = 0; i < ROWS; i++) {
         for (j = 0; j < COLS; j++) {
-            if (board[i][j] == 0)
+
+            SPR_setVisibility(cell[i][j], VISIBLE);
+            SPR_setFrame(cell[i][j], board[i][j]-1);
+
+            int anim_off_y = 0;
+            int anim_off_x = 0;
+            if(animate[i][j]) {
+                if(move_state == MOVING_D) {
+                    anim_off_y = animate[i][j] * -4;
+                }
+                if(move_state == MOVING_U) {
+                    anim_off_y = animate[i][j] * 4;
+                }
+                if(move_state == MOVING_R) {
+                    anim_off_x = animate[i][j] * -4;
+                }
+                if(move_state == MOVING_L) {
+                    anim_off_x = animate[i][j] * 4;
+                }
+                animate[i][j]--;
+            }
+
+            SPR_setPosition(cell[i][j], grid_x + j*32+anim_off_x, grid_y + i*32+anim_off_y);
+
+            if (board[i][j] == 0) {
+                SPR_setVisibility(cell[i][j], HIDDEN);
                 continue;
-            /* set font color */
-            VDP_setTextPalette(colors[board[i][j]]);
-            /* draw text */
-            VDP_drawText(numstr[board[i][j]], (j * 4) + 1, i + 1);
+            }
+
+
         }
     }
 }
 
 void show_win_screen() {
-    VDP_setTextPalette(3);
     VDP_drawText("YOU WIN!", 16, 25);
-    SPR_setAnim(sonic, ANIM_RUN);
 }
 
 void show_gameover_screen() {
-    VDP_setTextPalette(3);
     VDP_drawText("GAME OVER!", 10, 25);
-    SPR_setAnim(sonic, ANIM_BRAKE);
 }
 
-int frames = 0;
 
 void update_board() {
 
-    /* update game board in every other 4 frames, otherwise its moving too fast
-     */
     frames++;
-    if (frames % 4 != 0)
+    draw_board();
+
+    if (frames % 8 != 0)
         return;
 
     bool was_idle = (move_state == IDLE);
@@ -192,7 +205,6 @@ void update_board() {
             move_state = IDLE;
     }
 
-    draw_board();
 
     /* check game state for wins or game over */
     bool game_over = TRUE;
@@ -213,7 +225,6 @@ void update_board() {
     /* add new tile */
     if (!was_idle && move_state == IDLE) {
         add_random_tile();
-        SPR_setAnim(sonic, ANIM_WAIT);
     }
 }
 
@@ -228,11 +239,6 @@ void myJoyHandler(u16 joy, u16 changed, u16 state) {
         demo_mode = !demo_mode;
     }
 
-    if (state & BUTTON_B) {
-        sonic_easter = !sonic_easter;
-        SPR_setVisibility(sonic, !sonic_easter);
-    }
-
     /* board is already in moving state, ignore U/D/L/R buttons */
     if (move_state != IDLE) {
         return;
@@ -241,20 +247,14 @@ void myJoyHandler(u16 joy, u16 changed, u16 state) {
     if (joy == JOY_1) {
         if (state & BUTTON_RIGHT) {
             move_state = MOVING_R;
-            SPR_setAnim(sonic, ANIM_WALK);
-            SPR_setHFlip(sonic, FALSE);
         } else if (state & BUTTON_LEFT) {
             move_state = MOVING_L;
-            SPR_setAnim(sonic, ANIM_WALK);
-            SPR_setHFlip(sonic, TRUE);
         }
 
         if (state & BUTTON_UP) {
             move_state = MOVING_U;
-            SPR_setAnim(sonic, ANIM_UP);
         } else if (state & BUTTON_DOWN) {
             move_state = MOVING_D;
-            SPR_setAnim(sonic, ANIM_CROUNCH);
         }
     }
 }
@@ -284,20 +284,18 @@ int main(bool hardReset) {
     JOY_init();
     JOY_setEventHandler(&myJoyHandler);
 
-    /* load Sonic sprite */
+    /* load Tiles sprite */
     SPR_init();
-    sonic = SPR_addSprite(&sonic_sprite, 120, 160,
-                          TILE_ATTR(PAL1, TRUE, FALSE, FALSE));
-    SPR_setAnim(sonic, ANIM_WAIT);
-    SPR_setVisibility(sonic, HIDDEN);
 
-    /* set color palette */
-    VDP_setPalette(PAL1, palette_all.data);
-    /* overwrite font colors */
-    VDP_setPaletteColor((PAL0 * 16) + 15, RGB24_TO_VDPCOLOR(0x006600));
-    VDP_setPaletteColor((PAL1 * 16) + 15, RGB24_TO_VDPCOLOR(0x009900));
-    VDP_setPaletteColor((PAL2 * 16) + 15, RGB24_TO_VDPCOLOR(0x00CC00));
-    VDP_setPaletteColor((PAL3 * 16) + 15, RGB24_TO_VDPCOLOR(0x00FF00));
+    int i,j;
+    for(i=0; i<ROWS; i++) {
+        for(j=0; j<COLS; j++) {
+            cell[i][j] = SPR_addSprite(&tiles_sprite, grid_x+j*32, grid_y+i*32,
+                                  TILE_ATTR(PAL3, TRUE, FALSE, FALSE));
+        }
+    }
+
+//    VDP_setPalette(PAL1, tiles_sprite.palette->data);
 
     /* init board state */
     init_board();
