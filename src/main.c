@@ -6,8 +6,8 @@
 #define COLS 7
 int board[ROWS][COLS];
 
-int grid_x = (320 - COLS*32) / 2;
-int grid_y = (224 - ROWS*32) / 2;
+int grid_x = (320 - COLS * 32) / 2;
+int grid_y = (224 - ROWS * 32) / 2;
 
 /* board transition state */
 #define IDLE 0
@@ -21,6 +21,7 @@ int move_state = IDLE;
 int animate[ROWS][COLS];
 
 bool demo_mode = FALSE;
+int palette_idx = 0;
 
 Sprite *cell[ROWS][COLS];
 
@@ -66,12 +67,12 @@ bool push_tile(int x, int y, int dx, int dy) {
         return FALSE;
     if (board[x + dx][y + dy] == 0) {
         board[x + dx][y + dy] = board[x][y];
-        animate[x+dx][y+dy] = 8;
+        animate[x + dx][y + dy] = 8;
         board[x][y] = 0;
         return TRUE;
     } else if (board[x + dx][y + dy] == board[x][y]) {
         board[x + dx][y + dy]++;
-        animate[x+dx][y+dy] = 8;
+        animate[x + dx][y + dy] = 8;
         board[x][y] = 0;
         return TRUE;
     }
@@ -135,46 +136,50 @@ void draw_board() {
         for (j = 0; j < COLS; j++) {
 
             SPR_setVisibility(cell[i][j], VISIBLE);
-            SPR_setFrame(cell[i][j], board[i][j]-1);
+            SPR_setFrame(cell[i][j], board[i][j] - 1);
 
             int anim_off_y = 0;
             int anim_off_x = 0;
-            if(animate[i][j]) {
-                if(move_state == MOVING_D) {
+            if (animate[i][j]) {
+                if (move_state == MOVING_D) {
                     anim_off_y = animate[i][j] * -4;
                 }
-                if(move_state == MOVING_U) {
+                if (move_state == MOVING_U) {
                     anim_off_y = animate[i][j] * 4;
                 }
-                if(move_state == MOVING_R) {
+                if (move_state == MOVING_R) {
                     anim_off_x = animate[i][j] * -4;
                 }
-                if(move_state == MOVING_L) {
+                if (move_state == MOVING_L) {
                     anim_off_x = animate[i][j] * 4;
                 }
                 animate[i][j]--;
             }
 
-            SPR_setPosition(cell[i][j], grid_x + j*32+anim_off_x, grid_y + i*32+anim_off_y);
+            SPR_setPosition(cell[i][j], grid_x + j * 32 + anim_off_x,
+                            grid_y + i * 32 + anim_off_y);
 
             if (board[i][j] == 0) {
                 SPR_setVisibility(cell[i][j], HIDDEN);
                 continue;
             }
-
-
         }
     }
 }
 
-void show_win_screen() {
-    VDP_drawText("YOU WIN!", 16, 25);
+void update_color_palette()
+{
+    int i, j;
+    for(i=0; i<ROWS; i++) {
+        for(j=0; j<COLS; j++) {
+            SPR_setPalette(cell[i][j], palette_idx);
+        }
+    }
 }
 
-void show_gameover_screen() {
-    VDP_drawText("GAME OVER!", 10, 25);
-}
+void show_win_screen() { VDP_drawText("YOU WIN!", 16, 25); }
 
+void show_gameover_screen() { VDP_drawText("GAME OVER!", 10, 25); }
 
 void update_board() {
 
@@ -204,7 +209,6 @@ void update_board() {
         if (!move_right())
             move_state = IDLE;
     }
-
 
     /* check game state for wins or game over */
     bool game_over = TRUE;
@@ -238,6 +242,11 @@ void myJoyHandler(u16 joy, u16 changed, u16 state) {
         /* toogle demo mode */
         demo_mode = !demo_mode;
     }
+
+    if (state & BUTTON_B) {
+        palette_idx = (palette_idx + 1) % 4;
+        update_color_palette();
+   }
 
     /* board is already in moving state, ignore U/D/L/R buttons */
     if (move_state != IDLE) {
@@ -287,15 +296,17 @@ int main(bool hardReset) {
     /* load Tiles sprite */
     SPR_init();
 
-    int i,j;
-    for(i=0; i<ROWS; i++) {
-        for(j=0; j<COLS; j++) {
-            cell[i][j] = SPR_addSprite(&tiles_sprite, grid_x+j*32, grid_y+i*32,
-                                  TILE_ATTR(PAL3, TRUE, FALSE, FALSE));
+    int i, j;
+    for (i = 0; i < ROWS; i++) {
+        for (j = 0; j < COLS; j++) {
+            cell[i][j] =
+                SPR_addSprite(&tiles_sprite, grid_x + j * 32, grid_y + i * 32,
+                              TILE_ATTR(PAL2, TRUE, FALSE, FALSE));
         }
     }
-
-//    VDP_setPalette(PAL1, tiles_sprite.palette->data);
+    VDP_setPalette(PAL2, tiles_sprite.palette->data);
+    palette_idx = 2;
+    update_color_palette();
 
     /* init board state */
     init_board();
@@ -303,7 +314,7 @@ int main(bool hardReset) {
 
     while (TRUE) {
 
-        if(demo_mode)
+        if (demo_mode)
             random_move();
 
         update_board();
