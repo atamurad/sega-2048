@@ -135,33 +135,34 @@ void draw_board() {
     for (i = 0; i < ROWS; i++) {
         for (j = 0; j < COLS; j++) {
 
-            SPR_setVisibility(cell[i][j], VISIBLE);
-            SPR_setFrame(cell[i][j], board[i][j] - 1);
-
-            int anim_off_y = 0;
-            int anim_off_x = 0;
-            if (animate[i][j]) {
-                if (move_state == MOVING_D) {
-                    anim_off_y = animate[i][j] * -4;
-                }
-                if (move_state == MOVING_U) {
-                    anim_off_y = animate[i][j] * 4;
-                }
-                if (move_state == MOVING_R) {
-                    anim_off_x = animate[i][j] * -4;
-                }
-                if (move_state == MOVING_L) {
-                    anim_off_x = animate[i][j] * 4;
-                }
-                animate[i][j]--;
-            }
-
-            SPR_setPosition(cell[i][j], grid_x + j * 32 + anim_off_x,
-                            grid_y + i * 32 + anim_off_y);
-
             if (board[i][j] == 0) {
                 SPR_setVisibility(cell[i][j], HIDDEN);
-                continue;
+            } else {
+                SPR_setVisibility(cell[i][j], VISIBLE);
+                SPR_setFrame(cell[i][j], board[i][j] - 1);
+
+                int anim_off_y = 0;
+                int anim_off_x = 0;
+
+                if (animate[i][j]) {
+                    if (move_state == MOVING_D) {
+                        anim_off_y = animate[i][j] * -4;
+                    }
+                    if (move_state == MOVING_U) {
+                        anim_off_y = animate[i][j] * 4;
+                    }
+                    if (move_state == MOVING_R) {
+                        anim_off_x = animate[i][j] * -4;
+                    }
+                    if (move_state == MOVING_L) {
+                        anim_off_x = animate[i][j] * 4;
+                    }
+                    animate[i][j]--;
+                }
+
+                SPR_setPosition(cell[i][j], grid_x + j * 32 + anim_off_x,
+                                grid_y + i * 32 + anim_off_y);
+
             }
         }
     }
@@ -176,6 +177,8 @@ void update_color_palette()
         }
     }
 }
+
+void clear_text() { VDP_clearTextLine(25); }
 
 void show_win_screen() { VDP_drawText("YOU WIN!", 16, 25); }
 
@@ -236,6 +239,7 @@ void myJoyHandler(u16 joy, u16 changed, u16 state) {
 
     if (state & BUTTON_START) {
         init_board();
+        clear_text();
     }
 
     if (state & BUTTON_A) {
@@ -289,9 +293,8 @@ void random_move() {
 }
 
 int main(bool hardReset) {
-    /* init joystick handler */
-    JOY_init();
-    JOY_setEventHandler(&myJoyHandler);
+    // initialization
+    VDP_setScreenWidth320();
 
     /* load Tiles sprite */
     SPR_init();
@@ -311,6 +314,11 @@ int main(bool hardReset) {
     /* init board state */
     init_board();
     draw_board();
+
+    /* init joystick handler */
+    JOY_init();
+    JOY_setEventHandler(&myJoyHandler);
+
 
     while (TRUE) {
 
