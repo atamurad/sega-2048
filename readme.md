@@ -8,6 +8,7 @@
 
  * Demo mode: randomly moves the board without any player input. Press **A** to trigger.
  * Color mode: Press **B** to switch between Red/Green/Blue/White colors.
+ * Press **C** to adjust animation speed.
 
 ### How to play?
 

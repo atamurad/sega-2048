@@ -4,10 +4,15 @@
 /* 2048 game state */
 #define ROWS 7
 #define COLS 7
+
 int board[ROWS][COLS];
 
-int grid_x = (320 - COLS * 32) / 2;
-int grid_y = (224 - ROWS * 32) / 2;
+/* cell sprite size in pixels */
+#define CELL_SIZE 32
+
+/* calculate grid position */
+int grid_x = (320 - COLS * CELL_SIZE) / 2;
+int grid_y = (224 - ROWS * CELL_SIZE) / 2;
 
 /* board transition state */
 #define IDLE 0
@@ -18,14 +23,18 @@ int grid_y = (224 - ROWS * 32) / 2;
 #define GAMEOVER 5
 int move_state = IDLE;
 
-int animate[ROWS][COLS];
 
 bool demo_mode = FALSE;
 int palette_idx = 0;
 
 Sprite *cell[ROWS][COLS];
 
-int frames = 0;
+/* Animation */
+int animate[ROWS][COLS];
+int moving_cells = 0;
+
+/* animation speed in pixels per frame */
+int speed = 8;
 
 /*
  * adds '2' or '4' tile to a random empty cell
@@ -51,6 +60,7 @@ void add_random_tile() {
 void init_board() {
     memset(board, 0, sizeof(board));
     memset(animate, 0, sizeof(animate));
+    moving_cells = 0;
     move_state = IDLE;
     add_random_tile();
 }
@@ -67,12 +77,14 @@ bool push_tile(int x, int y, int dx, int dy) {
         return FALSE;
     if (board[x + dx][y + dy] == 0) {
         board[x + dx][y + dy] = board[x][y];
-        animate[x + dx][y + dy] = 8;
+        animate[x + dx][y + dy] = CELL_SIZE / speed;
+        moving_cells++;
         board[x][y] = 0;
         return TRUE;
     } else if (board[x + dx][y + dy] == board[x][y]) {
         board[x + dx][y + dy]++;
-        animate[x + dx][y + dy] = 8;
+        animate[x + dx][y + dy] = CELL_SIZE / speed;
+        moving_cells++;
         board[x][y] = 0;
         return TRUE;
     }
@@ -146,22 +158,24 @@ void draw_board() {
 
                 if (animate[i][j]) {
                     if (move_state == MOVING_D) {
-                        anim_off_y = animate[i][j] * -4;
+                        anim_off_y = animate[i][j] * -speed;
                     }
                     if (move_state == MOVING_U) {
-                        anim_off_y = animate[i][j] * 4;
+                        anim_off_y = animate[i][j] * speed;
                     }
                     if (move_state == MOVING_R) {
-                        anim_off_x = animate[i][j] * -4;
+                        anim_off_x = animate[i][j] * -speed;
                     }
                     if (move_state == MOVING_L) {
-                        anim_off_x = animate[i][j] * 4;
+                        anim_off_x = animate[i][j] * speed;
                     }
                     animate[i][j]--;
+                    if(animate[i][j]==0)
+                        moving_cells--;
                 }
 
-                SPR_setPosition(cell[i][j], grid_x + j * 32 + anim_off_x,
-                                grid_y + i * 32 + anim_off_y);
+                SPR_setPosition(cell[i][j], grid_x + j * CELL_SIZE + anim_off_x,
+                                grid_y + i * CELL_SIZE + anim_off_y);
 
             }
         }
@@ -186,11 +200,12 @@ void show_gameover_screen() { VDP_drawText("GAME OVER!", 10, 25); }
 
 void update_board() {
 
-    frames++;
     draw_board();
 
-    if (frames % 8 != 0)
+    /* if we're in middle of animation, don't update the board state */
+    if(moving_cells) {
         return;
+    }
 
     bool was_idle = (move_state == IDLE);
 
@@ -250,7 +265,16 @@ void myJoyHandler(u16 joy, u16 changed, u16 state) {
     if (state & BUTTON_B) {
         palette_idx = (palette_idx + 1) % 4;
         update_color_palette();
-   }
+    }
+    if (state & BUTTON_C) {
+        if(speed<32) {
+            speed = speed * 2;
+        } else {
+            speed = 1;
+        }
+    }
+
+
 
     /* board is already in moving state, ignore U/D/L/R buttons */
     if (move_state != IDLE) {
@@ -272,24 +296,18 @@ void myJoyHandler(u16 joy, u16 changed, u16 state) {
     }
 }
 
-int idle_frames = 0;
 void random_move() {
     if (move_state == IDLE) {
-        idle_frames++;
-        if (idle_frames == 10) {
-            int move = random() % 4;
-            if (move == 0)
-                myJoyHandler(JOY_1, 0, BUTTON_UP);
-            if (move == 1)
-                myJoyHandler(JOY_1, 0, BUTTON_DOWN);
-            if (move == 2)
-                myJoyHandler(JOY_1, 0, BUTTON_LEFT);
-            if (move == 3)
-                myJoyHandler(JOY_1, 0, BUTTON_RIGHT);
-        }
-    } else {
-        idle_frames = 0;
-    }
+        int move = random() % 4;
+        if (move == 0)
+            myJoyHandler(JOY_1, 0, BUTTON_UP);
+        if (move == 1)
+            myJoyHandler(JOY_1, 0, BUTTON_DOWN);
+        if (move == 2)
+            myJoyHandler(JOY_1, 0, BUTTON_LEFT);
+        if (move == 3)
+            myJoyHandler(JOY_1, 0, BUTTON_RIGHT);
+    } 
 }
 
 int main(bool hardReset) {
@@ -303,7 +321,7 @@ int main(bool hardReset) {
     for (i = 0; i < ROWS; i++) {
         for (j = 0; j < COLS; j++) {
             cell[i][j] =
-                SPR_addSprite(&tiles_sprite, grid_x + j * 32, grid_y + i * 32,
+                SPR_addSprite(&tiles_sprite, grid_x + j * CELL_SIZE, grid_y + i * CELL_SIZE,
                               TILE_ATTR(PAL2, TRUE, FALSE, FALSE));
         }
     }
